@@ -8,7 +8,7 @@
       <!--<Provider Type="Orleans.Storage.AzureTableStorage" Name="AzureStore" DataConnectionString="DefaultEndpointsProtocol=https;AccountName=MYACCOUNTNAME;AccountKey=MYACCOUNTKEY" />-->
     </StorageProviders>
     <SeedNode Address="localhost" Port="11111" />
-    <SystemStore SystemStoreType ="AzureTable" DataConnectionString="DefaultEndpointsProtocol=https;AccountName=joshmarta;AccountKey=Z/Zx+bheTZZvLeMhULbZnmuTERBC4/TlWBdJlI+u19i27uBkvAQVD0hB9rWjxqa8U6GnX1hpSudRLIak9wYYzA==" />
+    <SystemStore SystemStoreType ="AzureTable" DataConnectionString="DefaultEndpointsProtocol=https;AccountName=**accountName**;AccountKey=**key**" />
   </Globals>
   <Defaults>
     <Networking Address="localhost" Port="11111" />
