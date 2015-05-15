@@ -6,6 +6,6 @@ namespace Marta.DataFeed
 {
     public interface ISnapshotSink
     {
-        void HandleSnapshot(BusStatus snapshot);
+        void HandleSnapshot(BusSnapshotInfo snapshot);
     }
 }

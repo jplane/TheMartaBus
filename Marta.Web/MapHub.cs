@@ -6,32 +6,96 @@ using System.Web;
 using Microsoft.AspNet.SignalR;
 using System.Threading.Tasks;
 using Marta.Common;
+using Orleans;
+using Marta.Runtime.Interfaces;
 
 namespace Marta.Web
 {
     public class MapHub : Hub
     {
+        private static object _lock = new object();
+        private static bool _orleansInitialized = false;
+
+        private static void Init()
+        {
+            lock(_lock)
+            {
+                if(!_orleansInitialized)
+                {
+                    GrainClient.Initialize(HttpContext.Current.Server.MapPath("~/ClientConfiguration.xml"));
+                    _orleansInitialized = true;
+                }
+            }
+        }
+
         public Task RegisterMapView()
         {
             return Groups.Add(Context.ConnectionId, "mapViews");
         }
-
-        public Task UpdateStopStatus(int stopId, Tuple<int, TimeSpan>[] arriving, Tuple<int, TimeSpan>[] departed)
+        
+        public async Task<IEnumerable<RouteInfo>> GetRoutes()
         {
-            var stop = StaticDataLoader.GetStopById(stopId);
+            Init();
 
-            var name = stop == null ? stopId.ToString() : stop.Name;
+            var catalog = GrainFactory.GetGrain<IRouteCatalog>(1);
 
-            return Clients.Group("mapViews").updateStopMarker(stopId, name, stop.Latitude, stop.Longitude, arriving.Length, departed.Length);
+            var infos = new List<RouteInfo>();
+
+            foreach(var route in await catalog.GetRoutes())
+            {
+                infos.Add(await route.GetInfo());
+            }
+
+            return infos;
         }
 
-        public Task UpdateBusStatus(BusStatus status)
+        public async Task<IEnumerable<StopInfo>> GetStopsForRoute(int routeId)
         {
-            var trip = StaticDataLoader.GetTripById(status.TripId);
+            Init();
 
-            var name = "Bus " + status.VehicleId + " - [" + (trip == null ? "trip " + status.TripId.ToString() : trip.Headsign) + "]";
+            var route = GrainFactory.GetGrain<IRoute>(routeId);
 
-            return Clients.Group("mapViews").updateBusMarker(status.VehicleId, name, status.Latitude, status.Longitude);
+            var infos = new List<StopInfo>();
+
+            foreach(var stop in await route.GetStops())
+            {
+                infos.Add(await stop.GetInfo());
+            }
+
+            return infos;
+        }
+
+        public Task BusApproachingStop(StopInfo stop, int vehicleId, TimeSpan delta)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task BusNoLongerApproachingStop(StopInfo stop, int vehicleId)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task BusHasDepartedStop(StopInfo stop, int vehicleId, TimeSpan delta)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task BusNoLongerDepartedStop(StopInfo stop, int vehicleId)
+        {
+            return Task.FromResult(0);
+        }
+
+        public async Task UpdateBus(BusSnapshotInfo snapshot)
+        {
+            Init();
+
+            var trip = GrainFactory.GetGrain<ITrip>(snapshot.TripId);
+
+            var tripInfo = await trip.GetInfo();
+
+            var headsign = tripInfo == null ? string.Format("[{0}]", snapshot.TripId) : tripInfo.Headsign;
+
+            await Clients.Group("mapViews").updateBus(snapshot, headsign);
         }
     }
 }

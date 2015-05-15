@@ -66,6 +66,9 @@
     <Compile Include="Bus.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\orleans.codegen.cs" />
+    <Compile Include="Route.cs" />
+    <Compile Include="RouteCatalog.cs" />
+    <Compile Include="StaticData.cs" />
     <Compile Include="Stop.cs" />
     <Compile Include="Trip.cs" />
   </ItemGroup>
@@ -81,6 +84,21 @@
       <Project>{0c97a58c-ea7a-429f-8bbd-94d97e45700f}</Project>
       <Name>Marta.Runtime.Interfaces</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="static_data\routes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="static_data\shapes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="static_data\stops.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="static_data\stoptimes.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="static_data\trips.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

@@ -47,11 +47,11 @@ namespace Marta.EventHubListener
 
             foreach(var msg in messages)
             {
-                var snap = await JsonConvert.DeserializeObjectAsync<BusStatus>(Encoding.UTF8.GetString(msg.GetBytes()));
+                var snap = await JsonConvert.DeserializeObjectAsync<BusSnapshotInfo>(Encoding.UTF8.GetString(msg.GetBytes()));
 
-                var entity = new DynamicTableEntity(snap.RouteId.ToString(), snap.VehicleId.ToString());
+                var entity = new DynamicTableEntity(snap.RouteShortName, snap.VehicleId.ToString());
 
-                entity.Properties.Add("RouteId", EntityProperty.GeneratePropertyForInt(snap.RouteId));
+                entity.Properties.Add("RouteShortName", EntityProperty.GeneratePropertyForString(snap.RouteShortName));
                 entity.Properties.Add("VehicleId", EntityProperty.GeneratePropertyForInt(snap.VehicleId));
                 entity.Properties.Add("TripId", EntityProperty.GeneratePropertyForInt(snap.TripId));
                 entity.Properties.Add("Latitude", EntityProperty.GeneratePropertyForDouble(snap.Latitude));

@@ -6,60 +6,63 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Marta.Common
+using MC = Marta.Common;
+
+namespace Marta.Runtime.Entities
 {
-    public static class StaticDataLoader
+    internal static class StaticData
     {
-        public static Route GetRouteById(int id)
+        public static MC.RouteInfo GetRouteById(int id)
         {
-            Route route = null;
+            MC.RouteInfo route = null;
 
             _routes.Value.TryGetValue(id, out route);
 
             return route;
         }
 
-        public static IEnumerable<Route> Routes
+        public static IEnumerable<MC.RouteInfo> Routes
         {
             get { return _routes.Value.Values; }
         }
 
-        private static Lazy<Dictionary<int, Route>> _routes = new Lazy<Dictionary<int, Route>>(() =>
+        private static Lazy<Dictionary<int, MC.RouteInfo>> _routes = new Lazy<Dictionary<int, MC.RouteInfo>>(() =>
         {
-            return GetStaticData<Route>(StaticDataType.Routes, line =>
+            return GetStaticData<MC.RouteInfo>(StaticDataType.Routes, line =>
             {
                 var elements = line.Split(',');
 
-                return new Route
+                return new MC.RouteInfo
                 {
                     Id = int.Parse(elements[0]),
+                    ShortName = elements[1],
                     Name = elements[2]
                 };
             })
             .ToDictionary(r => r.Id);
         });
 
-        public static Trip GetTripById(int id)
+        public static MC.TripInfo GetTripById(int id)
         {
-            Trip trip = null;
+            MC.TripInfo trip = null;
 
             _trips.Value.TryGetValue(id, out trip);
 
             return trip;
         }
 
-        public static IEnumerable<Trip> Trips
+        public static IEnumerable<MC.TripInfo> Trips
         {
             get { return _trips.Value.Values; }
         }
 
-        private static Lazy<Dictionary<int, Trip>> _trips = new Lazy<Dictionary<int, Trip>>(() =>
+        private static Lazy<Dictionary<int, MC.TripInfo>> _trips = new Lazy<Dictionary<int, MC.TripInfo>>(() =>
         {
-            return GetStaticData<Trip>(StaticDataType.Trips, line =>
+            return GetStaticData<MC.TripInfo>(StaticDataType.Trips, line =>
             {
                 var elements = line.Split(',');
 
-                return new Trip
+                return new MC.TripInfo
                 {
                     RouteId = int.Parse(elements[0]),
                     Id = int.Parse(elements[2]),
@@ -70,27 +73,27 @@ namespace Marta.Common
             .ToDictionary(t => t.Id);
         });
 
-        public static Stop GetStopById(int id)
+        public static MC.StopInfo GetStopById(int id)
         {
-            Stop stop = null;
+            MC.StopInfo stop = null;
 
             _stops.Value.TryGetValue(id, out stop);
 
             return stop;
         }
 
-        public static IEnumerable<Stop> Stops
+        public static IEnumerable<MC.StopInfo> Stops
         {
             get { return _stops.Value.Values; }
         }
 
-        private static Lazy<Dictionary<int, Stop>> _stops = new Lazy<Dictionary<int, Stop>>(() =>
+        private static Lazy<Dictionary<int, MC.StopInfo>> _stops = new Lazy<Dictionary<int, MC.StopInfo>>(() =>
         {
-            return GetStaticData<Stop>(StaticDataType.Stops, line =>
+            return GetStaticData<MC.StopInfo>(StaticDataType.Stops, line =>
             {
                 var elements = line.Split(',');
 
-                return new Stop
+                return new MC.StopInfo
                 {
                     Id = int.Parse(elements[0]),
                     Latitude = double.Parse(elements[3]),
@@ -101,32 +104,44 @@ namespace Marta.Common
             .ToDictionary(s => s.Id);
         });
 
-        public static IEnumerable<StopTime> GetStopTimesByStopId(int stopId)
+        public static IEnumerable<MC.StopTimeInfo> GetStopTimesByStopId(int stopId)
         {
-            StopTime[] times = null;
+            MC.StopTimeInfo[] times = null;
 
             _stoptimes.Value.Item1.TryGetValue(stopId, out times);
 
-            return times ?? Enumerable.Empty<StopTime>();
+            return times ?? Enumerable.Empty<MC.StopTimeInfo>();
         }
 
-        public static IEnumerable<StopTime> GetStopTimesByTripId(int tripId)
+        public static IEnumerable<MC.StopTimeInfo> GetStopTimesByTripId(int tripId)
         {
-            StopTime[] times = null;
+            MC.StopTimeInfo[] times = null;
 
             _stoptimes.Value.Item2.TryGetValue(tripId, out times);
 
-            return times ?? Enumerable.Empty<StopTime>();
+            return times ?? Enumerable.Empty<MC.StopTimeInfo>();
         }
 
-        private static Lazy<Tuple<Dictionary<int, StopTime[]>, Dictionary<int, StopTime[]>>> _stoptimes =
-            new Lazy<Tuple<Dictionary<int, StopTime[]>, Dictionary<int, StopTime[]>>>(() =>
+        public static IEnumerable<MC.StopInfo> GetStopsByRouteId(int routeId)
         {
-            var stoptimes = GetStaticData<StopTime>(StaticDataType.StopTimes, line =>
+            var tripsForRoute = Trips.Where(t => t.RouteId == routeId)
+                                     .Select(t => t.Id)
+                                     .ToArray();
+
+            return _stoptimes.Value.Item1.SelectMany(pair => pair.Value)
+                                         .Join(tripsForRoute, st => st.TripId, tripId => tripId, (st, tripId) => st.StopId)
+                                         .Distinct()
+                                         .Select(stopId => GetStopById(stopId));
+        }
+
+        private static Lazy<Tuple<Dictionary<int, MC.StopTimeInfo[]>, Dictionary<int, MC.StopTimeInfo[]>>> _stoptimes =
+            new Lazy<Tuple<Dictionary<int, MC.StopTimeInfo[]>, Dictionary<int, MC.StopTimeInfo[]>>>(() =>
+        {
+            var stoptimes = GetStaticData<MC.StopTimeInfo>(StaticDataType.StopTimes, line =>
             {
                 var elements = line.Split(',');
 
-                return new StopTime
+                return new MC.StopTimeInfo
                 {
                     TripId = int.Parse(elements[0]),
                     Arrival = new TimeSpan(int.Parse(elements[1].Split(':')[0]), int.Parse(elements[1].Split(':')[1]), int.Parse(elements[1].Split(':')[2])),
@@ -140,37 +155,6 @@ namespace Marta.Common
             return Tuple.Create(
                 stoptimes.GroupBy(st => st.StopId).ToDictionary(g => g.Key, g => g.ToArray()),
                 stoptimes.GroupBy(st => st.TripId).ToDictionary(g => g.Key, g => g.ToArray()));
-        });
-
-        public static Shape GetShapeById(int id)
-        {
-            Shape shape = null;
-
-            _shapes.Value.TryGetValue(id, out shape);
-
-            return shape;
-        }
-
-        public static IEnumerable<Shape> Shapes
-        {
-            get { return _shapes.Value.Values; }
-        }
-
-        private static Lazy<Dictionary<int, Shape>> _shapes = new Lazy<Dictionary<int, Shape>>(() =>
-        {
-            return GetStaticData<Shape>(StaticDataType.Shapes, line =>
-            {
-                var elements = line.Split(',');
-
-                return new Shape
-                {
-                    Id = int.Parse(elements[0]),
-                    Latitude = double.Parse(elements[1]),
-                    Longitude = double.Parse(elements[2]),
-                    Sequence = int.Parse(elements[3])
-                };
-            })
-            .ToDictionary(s => s.Id);
         });
 
         private static IEnumerable<T> GetStaticData<T>(StaticDataType type, Func<string, T> factory)
@@ -195,7 +179,7 @@ namespace Marta.Common
         {
             var assembly = Assembly.GetExecutingAssembly();
             
-            var resourceName = string.Format("Marta.Common.static_data.{0}.txt", type.ToString().ToLower());
+            var resourceName = string.Format("Marta.Runtime.Entities.static_data.{0}.txt", type.ToString().ToLower());
 
             return assembly.GetManifestResourceStream(resourceName);
         }

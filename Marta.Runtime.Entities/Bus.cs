@@ -5,29 +5,33 @@ using Microsoft.AspNet.SignalR.Client;
 using Microsoft.Azure;
 using Orleans;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Marta.Runtime.Entities
 {
     public class Bus : Grain, IBus
     {
-        private int _tripId;
-        private double _latitude;
-        private double _longitude;
+        private readonly List<BusSnapshotInfo> _snapshots = new List<BusSnapshotInfo>();
+
         private IStop _lastStop = null;
         private IStop _nextStop = null;
         private IHubProxy _hub = null;
 
-        public async Task UpdateStatus(BusStatus status)
+        public Task<BusInfo> GetInfo()
         {
-            _tripId = status.TripId;
-            _latitude = status.Latitude;
-            _longitude = status.Longitude;
-
-            await UpdateMap(status);
-            await UpdateStops(status);
+            return Task.FromResult((BusInfo)_snapshots.LastOrDefault());
         }
 
-        private async Task UpdateStops(BusStatus status)
+        public async Task UpdateStatus(BusSnapshotInfo snapshot)
+        {
+            _snapshots.Add(snapshot);
+
+            await UpdateMap(snapshot);
+            await UpdateStops(snapshot);
+        }
+
+        private async Task UpdateStops(BusSnapshotInfo status)
         {
             var trip = GrainFactory.GetGrain<ITrip>(status.TripId);
 
@@ -68,7 +72,7 @@ namespace Marta.Runtime.Entities
             }
         }
 
-        private async Task UpdateMap(BusStatus status)
+        private async Task UpdateMap(BusSnapshotInfo status)
         {
             if (_hub == null)
             {
@@ -81,7 +85,7 @@ namespace Marta.Runtime.Entities
                 await conn.Start();
             }
 
-            await _hub.Invoke("UpdateBusStatus", status);
+            await _hub.Invoke("UpdateBus", status);
         }
     }
 }

@@ -7,6 +7,8 @@ namespace Marta.Runtime.Interfaces
 {
     public interface IBus : IGrainWithIntegerKey
     {
-        Task UpdateStatus(BusStatus snapshot);
+        Task<BusInfo> GetInfo();
+
+        Task UpdateStatus(BusSnapshotInfo snapshot);
     }
 }

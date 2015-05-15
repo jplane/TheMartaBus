@@ -8,6 +8,8 @@ namespace Marta.Runtime.Interfaces
 {
     public interface ITrip : IGrainWithIntegerKey
     {
-        Task<Tuple<StopTime, StopTime>> GetStopTimes(BusStatus status);
+        Task<TripInfo> GetInfo();
+
+        Task<Tuple<StopTimeInfo, StopTimeInfo>> GetStopTimes(BusSnapshotInfo status);
     }
 }

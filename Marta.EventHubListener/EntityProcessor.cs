@@ -36,7 +36,7 @@ namespace Marta.EventHubListener
         {
             foreach (var msg in messages)
             {
-                var status = await JsonConvert.DeserializeObjectAsync<BusStatus>(Encoding.UTF8.GetString(msg.GetBytes()));
+                var status = await JsonConvert.DeserializeObjectAsync<BusSnapshotInfo>(Encoding.UTF8.GetString(msg.GetBytes()));
 
                 var bus = GrainFactory.GetGrain<IBus>(status.VehicleId);
 

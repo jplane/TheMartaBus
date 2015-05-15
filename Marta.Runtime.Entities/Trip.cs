@@ -12,29 +12,30 @@ namespace Marta.Runtime.Entities
 {
     public class Trip : Grain, ITrip
     {
-        private LinkedList<StopTime> _stoptimes = null;
+        private LinkedList<StopTimeInfo> _stoptimes = null;
 
-        public Task<Tuple<StopTime, StopTime>> GetStopTimes(BusStatus status)
+        public Task<TripInfo> GetInfo()
+        {
+            return Task.FromResult(StaticData.GetTripById((int)this.GetPrimaryKeyLong()));
+        }
+
+        public Task<Tuple<StopTimeInfo, StopTimeInfo>> GetStopTimes(BusSnapshotInfo status)
         {
             if (_stoptimes == null)
             {
-                var trip = StaticDataLoader.GetTripById((int)this.GetPrimaryKeyLong());
-
-                if (trip != null)
-                {
-                    _stoptimes = new LinkedList<StopTime>(trip.StopTimes.OrderBy(st => st.Sequence));
-                }
+                var times = StaticData.GetStopTimesByTripId((int)this.GetPrimaryKeyLong());
+                _stoptimes = new LinkedList<StopTimeInfo>(times.OrderBy(st => st.Sequence));
             }
 
-            StopTime last = null;
-            StopTime next = null;
+            StopTimeInfo last = null;
+            StopTimeInfo next = null;
 
             GetStopTimes(status, out last, out next);
 
             return Task.FromResult(Tuple.Create(last, next));
         }
 
-        private void GetStopTimes(BusStatus status, out StopTime last, out StopTime next)
+        private void GetStopTimes(BusSnapshotInfo status, out StopTimeInfo last, out StopTimeInfo next)
         {
             last = next = null;
 
@@ -45,7 +46,7 @@ namespace Marta.Runtime.Entities
 
             var busTime = status.AdjustedTimestamp;
 
-            LinkedListNode<StopTime> node = _stoptimes.First;
+            LinkedListNode<StopTimeInfo> node = _stoptimes.First;
 
             while(node != null)
             {

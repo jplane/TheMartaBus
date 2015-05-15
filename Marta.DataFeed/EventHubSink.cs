@@ -18,7 +18,7 @@ namespace Marta.DataFeed
             _ehName = CloudConfigurationManager.GetSetting("ehName");
         }
 
-        public void HandleSnapshot(BusStatus snapshot)
+        public void HandleSnapshot(BusSnapshotInfo snapshot)
         {
             var eventHubClient = EventHubClient.CreateFromConnectionString(_ehConnectionString, _ehName);
 

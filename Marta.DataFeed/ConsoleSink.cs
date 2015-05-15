@@ -11,7 +11,7 @@ namespace Marta.DataFeed
         {
         }
 
-        public void HandleSnapshot(BusStatus snapshot)
+        public void HandleSnapshot(BusSnapshotInfo snapshot)
         {
             var json = JsonConvert.SerializeObject(snapshot, Formatting.Indented);
             Console.WriteLine(json);

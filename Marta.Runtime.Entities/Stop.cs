@@ -18,26 +18,12 @@ namespace Marta.Runtime.Entities
         private Dictionary<int, TimeSpan> _departed = null;
         private IHubProxy _hub = null;
 
-        private async Task UpdateMap()
+        public Task<StopInfo> GetInfo()
         {
-            if (_hub == null)
-            {
-                var signalrUri = CloudConfigurationManager.GetSetting("signalrUri");
-            
-                var conn = new HubConnection(signalrUri);
-
-                _hub = conn.CreateHubProxy("MapHub");
-
-                await conn.Start();
-            }
-
-            await _hub.Invoke("UpdateStopStatus",
-                              (int) this.GetPrimaryKeyLong(),
-                              _approaching.Select(pair => Tuple.Create(pair.Key, pair.Value)).ToArray(),
-                              _departed.Select(pair => Tuple.Create(pair.Key, pair.Value)).ToArray());
+            return Task.FromResult(StaticData.GetStopById((int)this.GetPrimaryKeyLong()));
         }
 
-        public Task IsApproaching(IBus bus, TimeSpan delta)
+        private async Task Init()
         {
             if(_approaching == null)
             {
@@ -49,52 +35,60 @@ namespace Marta.Runtime.Entities
                 _departed = new Dictionary<int, TimeSpan>();
             }
 
-            _approaching[(int) bus.GetPrimaryKeyLong()] = delta;
-
-            return UpdateMap();
-        }
-
-        public Task IsNoLongerApproaching(IBus bus)
-        {
-            if (_approaching != null)
+            if (_hub == null)
             {
-                _approaching.Remove((int)bus.GetPrimaryKeyLong());
-                return UpdateMap();
-            }
-            else
-            {
-                return Task.FromResult(0);
+                var signalrUri = CloudConfigurationManager.GetSetting("signalrUri");
+            
+                var conn = new HubConnection(signalrUri);
+
+                _hub = conn.CreateHubProxy("MapHub");
+
+                await conn.Start();
             }
         }
 
-        public Task HasDeparted(IBus bus, TimeSpan delta)
+        public async Task IsApproaching(IBus bus, TimeSpan delta)
         {
-            if (_approaching == null)
-            {
-                _approaching = new Dictionary<int, TimeSpan>();
-            }
+            await Init();
 
-            if (_departed == null)
-            {
-                _departed = new Dictionary<int, TimeSpan>();
-            }
+            var busId = (int)bus.GetPrimaryKeyLong();
 
-            _departed[(int) bus.GetPrimaryKeyLong()] = delta;
+            _approaching[busId] = delta;
 
-            return UpdateMap();
+            await _hub.Invoke("BusApproachingStop", await this.GetInfo(), busId, delta);
         }
 
-        public Task NoLongerDeparted(IBus bus)
+        public async Task IsNoLongerApproaching(IBus bus)
         {
-            if (_departed != null)
-            {
-                _departed.Remove((int)bus.GetPrimaryKeyLong());
-                return UpdateMap();
-            }
-            else
-            {
-                return Task.FromResult(0);
-            }
+            await Init();
+
+            var busId = (int)bus.GetPrimaryKeyLong();
+
+            _approaching.Remove(busId);
+
+            await _hub.Invoke("BusNoLongerApproachingStop", await this.GetInfo(), busId);
+        }
+
+        public async Task HasDeparted(IBus bus, TimeSpan delta)
+        {
+            await Init();
+
+            var busId = (int)bus.GetPrimaryKeyLong();
+
+            _departed[busId] = delta;
+
+            await _hub.Invoke("BusHasDepartedStop", await this.GetInfo(), busId, delta);
+        }
+
+        public async Task NoLongerDeparted(IBus bus)
+        {
+            await Init();
+
+            var busId = (int)bus.GetPrimaryKeyLong();
+
+            _departed.Remove(busId);
+
+            await _hub.Invoke("BusNoLongerDepartedStop", await this.GetInfo(), busId);
         }
 
         public Task<IEnumerable<IBus>> GetApproachingBuses()
@@ -113,7 +107,7 @@ namespace Marta.Runtime.Entities
         {
             if(_departed != null)
             { 
-            return Task.FromResult((IEnumerable<IBus>) _departed.Keys.Select(id => GrainFactory.GetGrain<IBus>(id)).ToArray());
+                return Task.FromResult((IEnumerable<IBus>) _departed.Keys.Select(id => GrainFactory.GetGrain<IBus>(id)).ToArray());
             }
             else
             {

@@ -16,7 +16,7 @@ namespace Marta.DataFeed
         {
         }
 
-        public IEnumerable<BusStatus> GetSnapshots()
+        public IEnumerable<BusSnapshotInfo> GetSnapshots()
         {
             var http = new HttpClient();
 
@@ -26,9 +26,9 @@ namespace Marta.DataFeed
 
             return jsonStops.Select(json =>
             {
-                return new BusStatus
+                return new BusSnapshotInfo
                 {
-                    RouteId = (int)json["ROUTE"],
+                    RouteShortName = (string)json["ROUTE"],
                     TripId = (int)json["TRIPID"],
                     NextStopId = (int)json["STOPID"],
                     VehicleId = (int)json["VEHICLE"],

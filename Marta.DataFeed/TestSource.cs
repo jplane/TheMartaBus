@@ -11,11 +11,11 @@ namespace Marta.DataFeed
         {
         }
 
-        public IEnumerable<BusStatus> GetSnapshots()
+        public IEnumerable<BusSnapshotInfo> GetSnapshots()
         {
-            yield return new BusStatus
+            yield return new BusSnapshotInfo
             {
-                RouteId = 55,
+                RouteShortName = "55",
                 TripId = 33,
                 NextStopId = 455,
                 VehicleId = 12,
@@ -27,9 +27,9 @@ namespace Marta.DataFeed
                 TimelinessOffset = 0
             };
 
-            yield return new BusStatus
+            yield return new BusSnapshotInfo
             {
-                RouteId = 55,
+                RouteShortName = "55",
                 TripId = 33,
                 NextStopId = 667,
                 VehicleId = 88,

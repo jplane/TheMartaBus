@@ -11,6 +11,9 @@
             margin: 0px;
             padding: 0px;
         }
+        #content {width: 100%; height: 100%}
+        #left {width: 20%; height: 100%; float: left; background-color: gray}
+        #right {margin-left: 100px; height: 100%;}
     </style>
     <script src="Scripts/jquery-2.1.3.min.js"></script>
     <script src="Scripts/jquery.signalR-2.2.0.min.js"></script>
@@ -20,8 +23,75 @@
     <script type ="text/javascript">
 
         var map;
+        var conn;
+        var hub;
         var busMarkers = {};
         var stopMarkers = {};
+        var currentRoute = -1;
+
+        function loadRoutes() {
+            hub.invoke('getRoutes').done(function (routes) {
+                $("#routeList").empty();
+                routes.forEach(function (route) {
+                    $("#routeList").append("<option value=" + route.Id + "-" + route.ShortName + ">" + route.Name + "</option>");
+                });
+            });
+        }
+
+        function showRoute(route) {
+
+            routeId = route.split("-")[0];
+            currentRoute = route.split("-")[1];
+
+            $.each(busMarkers, function (name, marker) {
+                marker.setMap(null);
+            });
+            busMarkers = {};
+
+            $.each(stopMarkers, function (name, marker) {
+                marker.setMap(null);
+            });
+            stopMarkers = {};
+
+            hub.invoke('getStopsForRoute', routeId).done(function (stops) {
+
+                var bounds = new google.maps.LatLngBounds();
+
+                $.each(stops, function (idx, stop) {
+
+                    var marker = new google.maps.Marker({
+                        position: { lat: stop.Latitude, lng: stop.Longitude },
+                        map: map,
+                        title: stop.Name,
+                        draggable: false,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                    });
+
+                    bounds.extend(marker.position);
+
+                    stopMarkers[stop.Id] = marker;
+                });
+
+                map.fitBounds(bounds);
+            });
+        }
+
+        function updateBus(snapshot, headsign) {
+
+            if (snapshot.RouteShortName == currentRoute) {
+
+                if (busMarkers.hasOwnProperty(snapshot.VehicleId)) {
+                    busMarkers[snapshot.VehicleId].setMap(null);
+                }
+
+                busMarkers[snapshot.VehicleId] = new google.maps.Marker({
+                    position: { lat: snapshot.Latitude, lng: snapshot.Longitude },
+                    map: map,
+                    title: headsign,
+                    draggable: false
+                });
+            }
+        }
 
         function initialize() {
 
@@ -32,44 +102,10 @@
             };
 
             map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+            conn = $.hubConnection();
+            hub = conn.createHubProxy('MapHub');
 
-            var conn = $.hubConnection();
-            var hub = conn.createHubProxy('MapHub');
-
-            hub.on('updateBusMarker', function (id, name, lat, lng) {
-
-                if (busMarkers.hasOwnProperty(id)) {
-                    busMarkers[id].setMap(null);
-                }
-
-                busMarkers[id] = new google.maps.Marker({
-                    position: { lat: lat, lng: lng },
-                    map: map,
-                    title: name,
-                    draggable: false
-                });
-            });
-
-            hub.on('updateStopMarker', function (id, name, lat, lng, arriving, departed) {
-
-                name = name + ' - ' + arriving + ' arriving - ' + departed + ' departed';
-
-                if (stopMarkers.hasOwnProperty(id)) {
-                    if (arriving == 0 && departed == 0) {
-                        stopMarkers[id].setMap(null);
-                    } else {
-                        stopMarkers[id].title = name;
-                    }
-                } else {
-                    stopMarkers[id] = new google.maps.Marker({
-                        position: { lat: lat, lng: lng },
-                        map: map,
-                        title: name,
-                        draggable: false,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
-                    });
-                }
-            });
+            hub.on('updateBus', updateBus);
 
             conn.start().done(function () {
                 hub.invoke('registerMapView');
@@ -81,6 +117,18 @@
         </script>
 </head>
 <body>
-    <div id="map-canvas"></div>
+    <div id="content">
+        <div id="left">
+            <br />
+            <br />
+            <button style="margin: 10px" onclick="loadRoutes()">Load Routes</button>
+            <br />
+            <br />
+            <select style="margin: 10px" id="routeList" onchange="if (this.selectedIndex >= 0) showRoute(this.options[this.selectedIndex].value);"></select>
+        </div>
+        <div id="right">
+            <div id="map-canvas"></div>
+        </div>
+    </div>
 </body>
 </html>

@@ -3,7 +3,7 @@ using System;
 
 namespace Marta.Common
 {
-    public class StopTime
+    public class StopTimeInfo
     {
         public int StopId { get; set; }
         public int TripId { get; set; }

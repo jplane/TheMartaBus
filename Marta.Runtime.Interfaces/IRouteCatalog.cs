@@ -1,15 +1,16 @@
 ﻿
 using Marta.Common;
+using Orleans;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Marta.DataFeed
+namespace Marta.Runtime.Interfaces
 {
-    public interface ISnapshotSource
+    public interface IRouteCatalog : IGrainWithIntegerKey
     {
-        IEnumerable<BusSnapshotInfo> GetSnapshots();
+        Task<IEnumerable<IRoute>> GetRoutes();
     }
 }

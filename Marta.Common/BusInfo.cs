@@ -7,11 +7,15 @@ using System.Threading.Tasks;
 
 namespace Marta.Common
 {
-    public class BusStatus
+    public class BusInfo
     {
         public int TripId { get; set; }
         public int VehicleId { get; set; }
-        public int RouteId { get; set; }
+        public string RouteShortName { get; set; }
+    }
+
+    public class BusSnapshotInfo : BusInfo
+    {
         public int NextStopId { get; set; }
         public double Latitude { get; set; }
         public double Longitude { get; set; }

@@ -48,6 +48,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IBus.cs" />
+    <Compile Include="IRoute.cs" />
+    <Compile Include="IRouteCatalog.cs" />
     <Compile Include="IStop.cs" />
     <Compile Include="ITrip.cs" />
     <Compile Include="Properties\orleans.codegen.cs" />
